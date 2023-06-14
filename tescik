@@ -1,13 +1,13 @@
 import sys
 from PyQt5.QtCore import Qt, pyqtSignal, QSettings
 from PyQt5.QtGui import QPainter, QBrush, QColor
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QGridLayout, QLabel, QDialog, QTabWidget, QLineEdit, QInputDialog
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QGridLayout, QLabel, QDialog, QTabWidget, QLineEdit, QInputDialog, QTabBar
 
 
 class CustomWindow(QWidget):
     def __init__(self):
         super().__init__()
-
+        
         self.draggable = False  # Flag to track if the window is draggable
         self.offset = None  # Offset between the cursor position and the top-left corner of the window
 
@@ -22,6 +22,7 @@ class CustomWindow(QWidget):
         self.setGeometry(100, 100, 150, 50)
         try:
             self.move(self.settings.value('window position'))
+
         except:
             pass
 
@@ -74,8 +75,8 @@ class CustomWindow(QWidget):
 
 
     def openSettings(self):
-        self.settings_window = SettingsWindow(self.tab_widget)  # Przekazujemy tab_widget jako argument do konstruktora SettingsWindow
-        self.settings_window.show()  # Pokaż okno ustawień
+        self.settings_window = SettingsWindow()  # Create an instance of SettingsWindow
+        self.settings_window.show()  # Show the settings window
 
 
     def paintEvent(self, event):
@@ -90,22 +91,57 @@ class CustomWindow(QWidget):
         painter.drawRoundedRect(rounded_rect, 10, 10)
 
 
+from PyQt5.QtWidgets import QTabBar
+
 class SettingsWindow(QDialog):
-    def __init__(self, tab_widget):
+    def __init__(self):
         super().__init__()
         self.setWindowTitle('Settings')
         self.setGeometry(400, 400, 600, 400)
 
         self.layout = QVBoxLayout()
 
-        self.tab_widget = tab_widget  # Przechowujemy referencję do przekazanego tab_widget
+        self.tab_widget = QTabWidget()
+        self.tab_widget.setTabsClosable(True)  # Allow tabs to be closed
 
-        self.tab_widget.addTab(QWidget(), "App")  # Dodawanie początkowej zakładki "App"
-        self.tab_widget.addTab(QWidget(), "+")  # Dodawanie zakładki "+" do dodawania nowych zakładek
+        self.tab_widget.tabCloseRequested.connect(self.closeTab)  # Connect the tabCloseRequested signal to a slot
+
+        self.addTab("App")  # Add the "App" tab
+
+        self.addTabButton()  # Add the "+" tab
 
         self.layout.addWidget(self.tab_widget)
-
         self.setLayout(self.layout)
+
+    def addTab(self, title):
+        # Create a new tab
+        new_tab = QWidget()
+        index = self.tab_widget.addTab(new_tab, title)
+
+        # Disable the close button for the "App" tab
+        if title == "App":
+            self.tab_widget.tabBar().setTabButton(index, QTabBar.RightSide, None)
+
+    def addTabButton(self):
+        # Create the "+" tab button
+        add_tab_button = QPushButton("+")
+        add_tab_button.clicked.connect(self.createNewTab)
+
+        # Add the "+" tab button as a tab
+        self.tab_widget.addTab(QWidget(), "")
+        index = self.tab_widget.count() - 1
+        self.tab_widget.tabBar().setTabButton(index, QTabBar.RightSide, add_tab_button)
+
+    def createNewTab(self):
+        # Create a new tab
+        new_tab = QWidget()
+        self.tab_widget.insertTab(self.tab_widget.count() - 1, new_tab, "New Tab")
+
+    def closeTab(self, index):
+        if self.tab_widget.count() > 2:  # Ensure there are always at least two tabs open
+            self.tab_widget.removeTab(index)
+
+
 
 
 if __name__ == '__main__':
